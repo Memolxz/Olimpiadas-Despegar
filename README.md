@@ -1,2 +1,2 @@
-# Olimpiadas-Despegar
-coso de olimpiadas INET
+# Olimpiadas-INET
+Olimpiadas INET
