@@ -179,6 +179,17 @@ CREATE TABLE "coupons" (
     "updatedAt" DATETIME NOT NULL
 );
 
+-- CreateTable
+CREATE TABLE "EmailConfig" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "type" TEXT NOT NULL,
+    "recipientEmails" TEXT NOT NULL,
+    "subject" TEXT NOT NULL,
+    "template" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
@@ -193,3 +204,12 @@ CREATE UNIQUE INDEX "user_preferences_userId_key_key" ON "user_preferences"("use
 
 -- CreateIndex
 CREATE UNIQUE INDEX "coupons_code_key" ON "coupons"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EmailConfig_type_key" ON "EmailConfig"("type");
+
+-- Insert default configurations
+INSERT INTO "EmailConfig" ("type", "recipientEmails", "subject", "template", "updatedAt") VALUES
+('ORDER_CREATED', 'ventas@empresa.com', 'Nueva orden: {orderNumber}', 'Se ha creado una nueva orden con número {orderNumber}', CURRENT_TIMESTAMP),
+('PAYMENT_CONFIRMED', 'finanzas@empresa.com', 'Pago confirmado: {orderNumber}', 'Se ha confirmado el pago de la orden {orderNumber}', CURRENT_TIMESTAMP),
+('ORDER_DELIVERED', 'logistica@empresa.com', 'Orden entregada: {orderNumber}', 'Se ha entregado la orden {orderNumber}', CURRENT_TIMESTAMP);

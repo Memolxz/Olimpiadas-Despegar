@@ -1,70 +1,175 @@
 import { Router } from "express"
+import { UserRole } from "@prisma/client"
 
 import { UserService } from "../services/userService"
+import { AuthService } from "../services/authService"
+import { JwtService } from "../services/jwtService"
+import { authenticateToken } from "../middlewares/jwtMiddleware"
+import { checkRole } from "../middlewares/roleMiddleware"
 
-const userService = new UserService();
+const router = Router()
+const userService = new UserService()
+const authService = new AuthService()
+const jwtService = new JwtService()
 
-export const userRouter = Router()
-
-userRouter.get('/', async (req, res) => {
+// Rutas públicas
+router.post("/register", async (req, res) => {
   try {
-    const users = await userService.getAllUsers();
-    res.status(200).json({ ok: true, data: users })
-  } catch (error) {
-    res.status(500).json({ ok: false, error: (error as any).message })
+    const user = await userService.createUser(req.body)
+    const tokens = await jwtService.generateTokenPair(user)
+    
+    res.json({
+      ok: true,
+      data: {
+        user,
+        ...tokens
+      }
+    })
+  } catch (error: any) {
+    res.status(400).json({
+      ok: false,
+      error: error.message
+    })
   }
 })
 
-userRouter.get('/:id', async (req, res) => {
+router.post("/login", async (req, res) => {
   try {
-    const userIdToGet = Number(req.params.id);
-    const user = await userService.getUserProfileById(userIdToGet);
-    res.status(200).json({ ok: true, data: user })
-  } catch (error) {
-    res.status(500).json({ ok: false, error: (error as any).message })
+    const { email, password } = req.body
+    const user = await authService.verifyUserCredentials(email, password)
+    const tokens = await jwtService.generateTokenPair(user)
+    
+    res.json({
+      ok: true,
+      data: {
+        user,
+        ...tokens
+      }
+    })
+  } catch (error: any) {
+    res.status(401).json({
+      ok: false,
+      error: error.message
+    })
   }
 })
 
-userRouter.put('/:id', async (req, res) => {
+// Rutas protegidas
+const protectedRouter = Router()
+protectedRouter.use(authenticateToken)
+
+// Rutas para todos los usuarios autenticados
+protectedRouter.get("/profile", async (req, res) => {
   try {
-    const userIdToModify = req.params.id;
-    const userFromRequest = req.body;
-
-    const userModified = await userService.updateUser({ id: userIdToModify, ...userFromRequest });
-
-    res.status(200).json({ ok: true, data: userModified });
-  } catch (error) {
-    res.status(500).json({ ok: false, error: (error as any).message })
+    const user = await userService.getUserById(req.user!.id)
+    res.json({
+      ok: true,
+      data: user
+    })
+  } catch (error: any) {
+    res.status(400).json({
+      ok: false,
+      error: error.message
+    })
   }
 })
 
-userRouter.patch('/:id', async (req, res) => {
+protectedRouter.put("/profile", async (req, res) => {
   try {
-    const userIdToModify = Number(req.params.id);
-    const userFromRequest = req.body;
-
-    const fullUser = await userService.getUserById(userIdToModify);
-
-    // Primero desestructuro todo el fullUser, luego desestructuro los atributos que me
-    // hayan pasado en el body para sobrescribir los primeros
-    const fullUserBody = { ...fullUser, ...userFromRequest }
-
-    const userModified = await userService.updateUser(fullUserBody);
-
-    res.status(200).json({ ok: true, data: userModified });
-  } catch (error) {
-    res.status(500).json({ ok: false, error: (error as any).message })
+    const user = await userService.updateUser(req.user!.id, req.body)
+    res.json({
+      ok: true,
+      data: user
+    })
+  } catch (error: any) {
+    res.status(400).json({
+      ok: false,
+      error: error.message
+    })
   }
 })
 
-userRouter.delete('/:id', async (req, res) => {
+protectedRouter.post("/preferences", async (req, res) => {
   try {
-    const userIdToDelete = Number(req.params.id);
-
-    await userService.deleteUser(userIdToDelete)
-
-    res.status(200).json({ ok: true })
-  } catch (error) {
-    res.status(500).json({ ok: false, error: (error as any).message })
+    const preferences = await userService.updateUserPreferences(req.user!.id, req.body)
+    res.json({
+      ok: true,
+      data: preferences
+    })
+  } catch (error: any) {
+    res.status(400).json({
+      ok: false,
+      error: error.message
+    })
   }
 })
+
+protectedRouter.post("/logout", async (req, res) => {
+  try {
+    await jwtService.invalidateUserTokens(req.user!.id)
+    res.json({
+      ok: true,
+      message: "Sesión cerrada exitosamente"
+    })
+  } catch (error: any) {
+    res.status(400).json({
+      ok: false,
+      error: error.message
+    })
+  }
+})
+
+// Rutas solo para administradores
+const adminRouter = Router()
+adminRouter.use(checkRole([UserRole.ADMIN]))
+
+adminRouter.get("/", async (req, res) => {
+  try {
+    const users = await userService.getAllUsers()
+    res.json({
+      ok: true,
+      data: users
+    })
+  } catch (error: any) {
+    res.status(400).json({
+      ok: false,
+      error: error.message
+    })
+  }
+})
+
+adminRouter.get("/by-role/:role", async (req, res) => {
+  try {
+    const users = await userService.getUsersByRole(req.params.role as UserRole)
+    res.json({
+      ok: true,
+      data: users
+    })
+  } catch (error: any) {
+    res.status(400).json({
+      ok: false,
+      error: error.message
+    })
+  }
+})
+
+adminRouter.delete("/:userId", async (req, res) => {
+  try {
+    await userService.deleteUser(parseInt(req.params.userId))
+    res.json({
+      ok: true,
+      message: "Usuario eliminado exitosamente"
+    })
+  } catch (error: any) {
+    res.status(400).json({
+      ok: false,
+      error: error.message
+    })
+  }
+})
+
+// Montar los routers protegidos
+router.use(protectedRouter)
+router.use("/admin", adminRouter)
+
+export default router

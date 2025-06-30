@@ -1,7 +1,8 @@
-// src/middlewares/jwtAuthMiddleware.ts
+// src/middlewares/jwtMiddleware.ts
 import { User, UserRole } from "@prisma/client";
 import { verify } from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
+import { JwtService } from "../services/jwtService";
 
 interface JWTPayload {
   id: number;
@@ -11,54 +12,56 @@ interface JWTPayload {
   exp?: number;
 }
 
-export const jwtAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
+const jwtService = new JwtService();
 
-  // Los tokens JWT vienen en el formato "Bearer <token>"
-  const token = authHeader?.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ 
-      ok: false, 
-      error: "Token de acceso requerido" 
-    });
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: number;
+        email: string;
+        role: string;
+      };
+    }
   }
+}
 
+export const authenticateToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    // Verificar y decodificar el token JWT
-    const decodedPayload = verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
 
-    // Validar que el payload tenga los campos requeridos
-    if (!decodedPayload.id || !decodedPayload.email || !decodedPayload.role) {
-      throw new Error("Token inválido: payload incompleto");
+    if (!token) {
+      return res.status(401).json({
+        ok: false,
+        error: "Token de acceso requerido"
+      });
     }
 
-    // Crear objeto user para req.user
-    const user: User = {
-      id: decodedPayload.id,
-      email: decodedPayload.email,
-      role: decodedPayload.role,
-      firstName: '', // Se puede obtener de la DB si es necesario
-      lastName: '',
-      password: '',
-      country: '',
-      phone: null,
-      documentNumber: null,
-      address: null,
-      city: null,
-      postalCode: null,
-      birthDate: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: null
+    const user = await jwtService.getUserFromToken(token);
+
+    if (!user) {
+      return res.status(401).json({
+        ok: false,
+        error: "Token inválido o expirado"
+      });
+    }
+
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role
     };
 
-    req.user = user;
     next();
-  } catch (error) {
-    return res.status(403).json({ 
-      ok: false, 
-      error: "Token inválido o expirado" 
+  } catch (error: any) {
+    return res.status(401).json({
+      ok: false,
+      error: error.message
     });
   }
 };
