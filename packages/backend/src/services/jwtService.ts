@@ -1,7 +1,9 @@
 // src/services/jwtService.ts
 import { sign, verify } from "jsonwebtoken";
-import { User, UserRole } from "@prisma/client";
+import { User } from "@prisma/client";
 import { db } from "../db/db";
+
+type UserRole = "CLIENT" | "SALES_AGENT" | "ADMIN";
 
 interface JWTPayload {
   id: number;

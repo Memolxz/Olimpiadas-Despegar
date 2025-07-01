@@ -1,4 +1,4 @@
-import { Order, User, Notification, Prisma } from "@prisma/client";
+import { Order, Prisma } from "@prisma/client";
 import { db } from "../db/db";
 import nodemailer from "nodemailer";
 

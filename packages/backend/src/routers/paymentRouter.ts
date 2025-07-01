@@ -2,7 +2,22 @@ import { Router, Request, Response, NextFunction } from "express";
 import { PaymentService } from "../services/paymentService";
 import { authenticateToken } from "../middlewares/jwtMiddleware";
 import { checkRole } from "../middlewares/roleMiddleware";
-import { PaymentStatus, UserRole } from "@prisma/client";
+
+type UserRole = "CLIENT" | "SALES_AGENT" | "ADMIN";
+const UserRole = {
+  CLIENT: "CLIENT",
+  SALES_AGENT: "SALES_AGENT",
+  ADMIN: "ADMIN"
+} as const;
+
+type PaymentStatus = "PENDING" | "COMPLETED" | "CANCELLED" | "REFUNDED" | "FAILED";
+const PaymentStatus = {
+  PENDING: "PENDING",
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+  REFUNDED: "REFUNDED",
+  FAILED: "FAILED"
+} as const;
 
 const router = Router();
 const paymentService = new PaymentService();

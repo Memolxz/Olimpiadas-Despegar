@@ -1,7 +1,15 @@
 // src/services/authService.ts
 import { compare } from "bcrypt";
-import { User, UserRole } from "@prisma/client";
+import { User } from "@prisma/client";
 import { db } from "../db/db";
+
+const UserRole = {
+  CLIENT: "CLIENT",
+  SALES_AGENT: "SALES_AGENT",
+  ADMIN: "ADMIN"
+} as const;
+
+type UserRole = typeof UserRole[keyof typeof UserRole];
 
 export class AuthService {
   async verifyUserCredentials(email: string, unencryptedPassword: string): Promise<User> {

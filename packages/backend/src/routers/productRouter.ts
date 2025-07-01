@@ -2,7 +2,13 @@ import { Router } from "express";
 import { ProductService } from "../services/producService";
 import { authenticateToken } from "../middlewares/jwtMiddleware";
 import { checkRole } from "../middlewares/roleMiddleware";
-import { UserRole } from "@prisma/client";
+
+type UserRole = "CLIENT" | "SALES_AGENT" | "ADMIN";
+const UserRole = {
+  CLIENT: "CLIENT",
+  SALES_AGENT: "SALES_AGENT",
+  ADMIN: "ADMIN"
+} as const;
 
 const router = Router();
 const productService = new ProductService();

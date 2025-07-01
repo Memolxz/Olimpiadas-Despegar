@@ -2,7 +2,23 @@ import { Router, Request, Response } from "express";
 import { PackageService } from "../services/packageService";
 import { authenticateToken } from "../middlewares/jwtMiddleware";
 import { checkRole } from "../middlewares/roleMiddleware";
-import { ProductType, UserRole } from "@prisma/client";
+
+type UserRole = "CLIENT" | "SALES_AGENT" | "ADMIN";
+const UserRole = {
+  CLIENT: "CLIENT",
+  SALES_AGENT: "SALES_AGENT",
+  ADMIN: "ADMIN"
+} as const;
+
+type ProductType = "FLIGHT" | "ACCOMMODATION" | "TRANSFER" | "EXCURSION" | "INSURANCE" | "ASSISTANCE";
+const ProductType = {
+  FLIGHT: "FLIGHT",
+  ACCOMMODATION: "ACCOMMODATION",
+  TRANSFER: "TRANSFER",
+  EXCURSION: "EXCURSION",
+  INSURANCE: "INSURANCE",
+  ASSISTANCE: "ASSISTANCE"
+} as const;
 
 const router = Router();
 const packageService = new PackageService();

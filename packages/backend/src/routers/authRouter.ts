@@ -1,7 +1,14 @@
 // src/routers/authRouter.ts
 import { Router } from "express";
 import { hash } from "bcrypt";
-import { UserRole } from "@prisma/client";
+import { db } from "../db/db";
+
+type UserRole = "CLIENT" | "SALES_AGENT" | "ADMIN";
+const UserRole = {
+  CLIENT: "CLIENT",
+  SALES_AGENT: "SALES_AGENT",
+  ADMIN: "ADMIN"
+} as const;
 
 import { AuthService } from "../services/authService";
 import { JwtService } from "../services/jwtService";
